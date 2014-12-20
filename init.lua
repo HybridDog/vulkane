@@ -85,11 +85,13 @@ local function flow_lq(y, typ)
 			local pstr = x.." "..y.." "..z
 			if not hard_nds[pstr]
 			and not flows[b][pstr] then
+			-- it flows down if air is under it
 				table.insert(todo, {x,y,z})
 			else
 				y = y+1
-				local v = flows[a][x.." "..y.." "..z]-1
+				local v = flows[a][x.." "..y.." "..z] - 1
 				if v > 0 then
+				-- it spreads if its param is > 1
 					for _,d in pairs({-1,0}, {2,0}, {-1,1}, {0,-2}) do
 						x = x+d[1]
 						z = z+d[2]
