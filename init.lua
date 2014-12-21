@@ -54,7 +54,7 @@ local inverts = {w="l", l="w"}
 local function flow_lq(y, a)
 	local b = inverts[a]
 	flows[a]["0 "..y.." 0"] = 9
-	local todos = {{0,y,0}}
+	local todo = {{0,y,0}}
 	while todo[1] do
 		for n,current in pairs(todo) do
 			local x,y,z = unpack(current)
@@ -88,11 +88,12 @@ local function flow_lq(y, a)
 				local v = flows[a][x.." "..y.." "..z] - 1
 				if v > 0 then
 				-- it spreads if its param is > 1
-					for _,d in pairs({-1,0}, {2,0}, {-1,1}, {0,-2}) do
+					for _,d in pairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
 						x = x+d[1]
 						z = z+d[2]
 						local cv = flows[a][x.." "..y.." "..z]
-						if cv < v then
+						if not cv
+						or cv < v then
 							flows[a][x.." "..y.." "..z] = v
 							table.insert(todo, {x,y,z})
 						end
@@ -163,7 +164,7 @@ local function spawn_volcano(pos, h)
 	local manip = minetest.get_voxel_manip()
 	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
 	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
-	local nodes = manip:get_data()
+	local data = manip:get_data()
 
 	for _,p in pairs(ps) do
 		p = area:index(p[1], p[2], p[3])
@@ -172,12 +173,29 @@ local function spawn_volcano(pos, h)
 		end
 	end
 
-	manip:set_data(nodes)
+	manip:set_data(data)
 	manip:write_to_map()
 	manip:update_map()
 end
 
 
+local function chatcmd(name)
+	if not name
+	or name == "" then
+		return
+	end
+	local pos = vector.round(minetest.get_player_by_name(name):getpos())
+	minetest.chat_send_all("mnt1")
+	spawn_volcano(pos, 40)
+	minetest.chat_send_all("mnt2")
+end
+
+minetest.register_chatcommand('vulkan',{
+	description = 'MAUNTEN',
+	params = "",
+	privs = {},
+	func = chatcmd
+})
 
 
 
