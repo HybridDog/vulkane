@@ -39,18 +39,18 @@ end
 local function find_water(p)
 	local x,y,z = unpack(string.split(p, " "))
 	for i = -1,1 do
-		--[[for j = -1,1 do
+		for j = -1,1 do
 			for k = -1,1 do
 				if flows.w[x+i.." "..y+j.." "..z+k] then
 					return true
 				end
 			end
-		end]]
-		for _,s in pairs({x+i.." "..y.." "..z, x.." "..y+i.." "..z, x.." "..y.." "..z+i}) do
+		end
+		--[[for _,s in pairs({x+i.." "..y.." "..z, x.." "..y+i.." "..z, x.." "..y.." "..z+i}) do
 			if flows.w[s] then
 				return true
 			end
-		end
+		end]]
 	end
 	return false
 end
