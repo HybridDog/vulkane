@@ -112,7 +112,7 @@ local function flow_lq(y, a)
 						z = z+d[2]
 						local pstr = x.." "..y.." "..z
 						if not flows[b][pstr]
-						and not hard_nds[pstr] then
+						and not is_hard(x,y,z) then
 							local cv = flows[a][pstr]
 							if not cv
 							or cv < v then
