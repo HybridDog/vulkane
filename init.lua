@@ -1,80 +1,57 @@
 -- current solids
 local hard_nds = {}
-local flows = {}
 
--- set a solid
-local function set_hard(x,y,z)
-	if not y then
-	-- x can be a minetest vector
-		x,y,z = x.x,x.y,x.z
-	end
-	hard_nds[x.." "..y.." "..z] = true
-end
+-- current liquids
+local flows = {w={}, l={}}
 
 -- get a solid
 local function is_hard(x,y,z)
-	if not y then
-	-- x can be a minetest vector
-		x,y,z = x.x,x.y,x.z
+	if y <= -5 then
+		return true
 	end
 	return hard_nds[x.." "..y.." "..z] or false
 end
 
--- current flowing water
-flows.w = {}
-
--- set flowing water
-local function set_water(x,y,z, v)
-	flows.w[x.." "..y.." "..z] = v
-end
-
--- get flowing water
-local function get_water(x,y,z)
-	return flows.w[x.." "..y.." "..z]
-end
-
--- flowing water flows
-local function spray_water(x,y,z, v)
-	v = v-1
-	for _,d in pairs({-1,0}, {2,0}, {-1,1}, {0,-2}) do
-		x = x+d[1]
-		z = z+d[2]
-		local cv = flows.w[x.." "..y.." "..z]
-		if cv < v then
-			flows.w[x.." "..y.." "..z] = v
-		end
-	end
-end
-
--- current flowing lava
-flows.l = {}
-
--- set flowing lava
-local function set_lava(x,y,z, v)
-	flows.l[x.." "..y.." "..z] = v
-end
-
--- get flowing water
-local function get_lava(x,y,z)
-	return flows.l[x.." "..y.." "..z]
-end
-
 -- sets the tower for the volcano
 local function get_tower(h)
-	for y = 0,h do
+	for y = 0,h,2 do
 		for x = -2,2 do
 			for z = -2,2 do
 				if math.random(2) == 1 then
-					set_hard(x,y,z)
+					hard_nds[x.." "..y.." "..z] = true
 				end
 			end
 		end
 	end
 end
 
+-- searches for water around it
+local function find_water(p)
+	local x,y,z = unpack(string.split(p, " "))
+	for i = -1,1,2 do
+		for _,s in pairs({x+i.." "..y.." "..z, x.." "..y+i.." "..z, x.." "..y.." "..z+i}) do
+			if flows.w[s] then
+				return true
+			end
+		end
+	end
+end
+
+-- cools the lava
+local function cool()
+	for p in pairs(flows.l) do
+		if find_water(p) then
+			flows.l[p] = nil
+			hard_nds[p] = true
+		end
+	end
+end
+
+-- the opposite liquids
 local inverts = {w="l", l="w"}
-local function flow_lq(y, typ)
-	local a = typ
+
+-- simulates a liquid flowing down
+local function flow_lq(y, a)
 	local b = inverts[a]
 	flows[a]["0 "..y.." 0"] = 9
 	local todos = {{0,y,0}}
@@ -82,10 +59,29 @@ local function flow_lq(y, typ)
 		for n,current in pairs(todo) do
 			local x,y,z = unpack(current)
 			y = y-1
-			local pstr = x.." "..y.." "..z
-			if not hard_nds[pstr]
-			and not flows[b][pstr] then
-			-- it flows down if air is under it
+			if not is_hard(x,y,z)
+			and not flows[b][x.." "..y.." "..z] then
+			-- it flows a bit down if air is under it
+				local l = 1
+				for i = y-1,y-500,-1 do
+					if is_hard(x,i,z) then
+						break
+					end
+					l = l+1
+				end
+				y = y+1
+				if l ~= 1 then
+					local l = l
+					if a == "l" then
+					-- lava doesn't somehow stops in air
+						l = math.floor(l/math.random(1,l)+0.5)
+					end
+					for i = 1,l do
+						flows[a][x.." "..y-i.." "..z] = 1
+					end
+				end
+				y = y-l
+				flows[a][x.." "..y.." "..z] = 9
 				table.insert(todo, {x,y,z})
 			else
 				y = y+1
@@ -106,6 +102,53 @@ local function flow_lq(y, typ)
 			todo[n] = nil
 		end
 	end
+end
+
+-- creates one
+local function spawn_volcano(pos, h)
+-- reset current solids
+	hard_nds = {}
+
+-- reset current liquids
+	flows = {w={}, l={}}
+
+-- sets the "tower"
+	get_tower(h)
+
+-- calculates the mountain
+	local lq = "w"
+	for y = 1,h+1,2 do
+		flow_lq(y, lq)
+		cool()
+		lq = inverts[lq]
+	end
+
+-- gets informations
+	local ps,n = {},1
+	local min = vector.new(pos)
+	local max = vector.new(pos)
+	for p in pairs(hard_nds) do
+
+	-- get coordinates
+		local x,y,z = unpack(string.split(p, " "))
+		x = x+pos.x
+		y = y+pos.y
+		z = z+pos.z
+
+	-- update min and max position
+		min.x = math.min(min.x,x)
+		min.y = math.min(min.y,y)
+		min.z = math.min(min.z,z)
+		max.x = math.max(max.x,x)
+		max.y = math.max(max.y,y)
+		max.z = math.max(max.z,z)
+
+	-- put it into another table
+		ps[n] = {x,y,z}
+		n = n+1
+	end
+
+-- places the mountain
 end
 
 
