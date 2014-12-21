@@ -28,13 +28,21 @@ end
 -- searches for water around it
 local function find_water(p)
 	local x,y,z = unpack(string.split(p, " "))
-	for i = -1,1,2 do
+	for i = -1,1 do
+		--[[for j = -1,1 do
+			for k = -1,1 do
+				if flows.w[x+i.." "..y+j.." "..z+k] then
+					return true
+				end
+			end
+		end]]
 		for _,s in pairs({x+i.." "..y.." "..z, x.." "..y+i.." "..z, x.." "..y.." "..z+i}) do
 			if flows.w[s] then
 				return true
 			end
 		end
 	end
+	return false
 end
 
 -- cools the lava
@@ -64,7 +72,8 @@ local function flow_lq(y, a)
 			-- it flows a bit down if air is under it
 				local l = 1
 				for i = y-1,y-500,-1 do
-					if is_hard(x,i,z) then
+					if is_hard(x,i,z)
+					or flows[b][x.." "..i.." "..z] then
 						break
 					end
 					l = l+1
@@ -91,11 +100,15 @@ local function flow_lq(y, a)
 					for _,d in pairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
 						x = x+d[1]
 						z = z+d[2]
-						local cv = flows[a][x.." "..y.." "..z]
-						if not cv
-						or cv < v then
-							flows[a][x.." "..y.." "..z] = v
-							table.insert(todo, {x,y,z})
+						local pstr = x.." "..y.." "..z
+						if not flows[b][pstr]
+						and not hard_nds[pstr] then
+							local cv = flows[a][pstr]
+							if not cv
+							or cv < v then
+								flows[a][pstr] = v
+								table.insert(todo, {x,y,z})
+							end
 						end
 					end
 				end
@@ -186,7 +199,7 @@ local function chatcmd(name)
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
 	minetest.chat_send_all("mnt1")
-	spawn_volcano(pos, 40)
+	spawn_volcano(pos, 10)
 	minetest.chat_send_all("mnt2")
 end
 
