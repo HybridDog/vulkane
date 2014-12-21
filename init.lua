@@ -104,6 +104,16 @@ local function flow_lq(y, a)
 	end
 end
 
+local c_air, c_stone, done
+local function load_contents()
+	if done then
+		return
+	end
+	c_air = minetest.get_content_id("air")
+	c_stone = minetest.get_content_id("default:stone")
+	done = true
+end
+
 -- creates one
 local function spawn_volcano(pos, h)
 -- reset current solids
@@ -149,6 +159,22 @@ local function spawn_volcano(pos, h)
 	end
 
 -- places the mountain
+	load_contents()
+	local manip = minetest.get_voxel_manip()
+	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
+	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	local nodes = manip:get_data()
+
+	for _,p in pairs(ps) do
+		p = area:index(p[1], p[2], p[3])
+		if data[p] == c_air then
+			data[p] = c_stone
+		end
+	end
+
+	manip:set_data(nodes)
+	manip:write_to_map()
+	manip:update_map()
 end
 
 
