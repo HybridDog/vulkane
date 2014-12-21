@@ -4,9 +4,19 @@ local hard_nds = {}
 -- current liquids
 local flows = {w={}, l={}}
 
+local hole_size
 -- get a solid
 local function is_hard(x,y,z)
-	if y <= -5 then
+	local dist = math.hypot(x,z)
+	if dist > hole_size then
+		return true
+	end
+	local v = hole_size/(hole_size-dist)-5
+	if y <= hole_size/(hole_size-dist)-5 then
+		return true
+	end
+	if math.random(2) == 1
+	and y <= hole_size/(hole_size-dist*2)-5 then
 		return true
 	end
 	return hard_nds[x.." "..y.." "..z] or false
@@ -130,6 +140,8 @@ end
 
 -- creates one
 local function spawn_volcano(pos, h)
+	hole_size = h
+
 -- reset current solids
 	hard_nds = {}
 
@@ -143,7 +155,9 @@ local function spawn_volcano(pos, h)
 	local lq = "w"
 	for y = 1,h+1,2 do
 		flow_lq(y, lq)
+		print(lq.." set")
 		cool()
+		print("cooled")
 		lq = inverts[lq]
 	end
 
@@ -199,7 +213,7 @@ local function chatcmd(name)
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
 	minetest.chat_send_all("mnt1")
-	spawn_volcano(pos, 10)
+	spawn_volcano(pos, 50)
 	minetest.chat_send_all("mnt2")
 end
 
