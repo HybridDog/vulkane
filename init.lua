@@ -1,3 +1,95 @@
+local load_time_start = os.clock()
+
+local singleplayer,log = minetest.is_singleplayer()
+if singleplayer then
+	function log(txt)
+		minetest.log(txt)
+		minetest.chat_send_all(txt)
+	end
+else
+	function log(txt)
+		minetest.log(txt)
+	end
+end
+
+-- gets content ids
+local c_air, c_ignore, c_stone, done
+local function load_contents()
+	if done then
+		return
+	end
+	c_air = minetest.get_content_id("air")
+	c_ignore = minetest.get_content_id("ignore")
+	c_stone = minetest.get_content_id("default:stone")
+	done = true
+end
+
+-- gets the lowest allowed height
+local bottom
+local function get_bottom(y)
+	if y > 50 then
+		bottom = y-50
+	elseif y > 0 then
+		bottom = 0
+	else
+		bottom = y
+	end
+end
+
+local width
+
+local function is_surrounded(data, area, x,y,z, pos)
+	if x >= pos.x-1
+	and x <= pos.x+1
+	and z >= pos.z-1
+	and z <= pos.z+1 then
+		return false
+	end
+	for i = -1,1,2 do
+		for _,s in pairs({{x+i,y,z}, {x,y+i,z}, {x,y,z+i}}) do
+			local x,y,z = unpack(s)
+			local nd = data[area:index(x,y,z)]
+			if nd == c_air
+			or nd == c_ignore then
+				return false
+			end
+		end
+	end
+	return true
+end
+
+-- gets the environment
+local exs_solids = {}
+local function get_solids_around(pos, h)
+	log("searching environment…")
+	local min = vector.subtract(pos, width)
+	local max = vector.add(pos, width)
+	min.y = bottom
+	max.y = h
+
+	local manip = minetest.get_voxel_manip()
+	local e1, e2 = manip:read_from_map(min, max)
+	local area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local data = manip:get_data()
+
+	load_contents()
+	local count = 0
+	for z = min.z,max.z do
+		for y = min.y,max.y do
+			for x = min.x,max.x do
+				local nd = data[area:index(x,y,z)]
+				if nd ~= c_air
+				and nd ~= c_ignore
+				and not is_surrounded(data, area, x,y,z, pos) then
+					exs_solids[x-pos.x.." "..y-pos.y.." "..z-pos.z] = true
+					count = count+1
+				end
+			end
+		end
+	end
+	log(count.." solids found")
+end
+
 -- current solids
 local hard_nds = {}
 
@@ -7,7 +99,14 @@ local flows = {w={}, l={}}
 local hole_size
 -- get a solid
 local function is_hard(x,y,z)
-	local dist = math.hypot(x,z)
+	local maxv = math.max(math.abs(x), math.abs(z))
+	if maxv > width then
+		return true
+	end
+	if y < bottom then
+		return true
+	end
+	--[[local dist = math.hypot(x,z)
 	if dist > hole_size then
 		return true
 	end
@@ -18,12 +117,18 @@ local function is_hard(x,y,z)
 	if math.random(2) == 1
 	and y <= hole_size/(hole_size-dist*2)-5 then
 		return true
+	end]]
+	local pstr = x.." "..y.." "..z
+	if exs_solids[pstr]
+	or hard_nds[pstr] then
+		return true
 	end
-	return hard_nds[x.." "..y.." "..z] or false
+	return false
 end
 
 -- sets the tower for the volcano
 local function get_tower(h)
+	log("creating tower…")
 	for y = 0,h,2 do
 		for x = -2,2 do
 			for z = -2,2 do
@@ -57,6 +162,7 @@ end
 
 -- cools the lava
 local function cool()
+	log("cooling…")
 	for p in pairs(flows.l) do
 		if find_water(p) then
 			flows.l[p] = nil
@@ -70,8 +176,9 @@ local inverts = {w="l", l="w"}
 
 -- simulates a liquid flowing down
 local function flow_lq(y, a)
+	log("flowing "..a.."…")
 	local b = inverts[a]
-	flows[a]["0 "..y.." 0"] = 9
+	flows[a]["0 "..y.." 0"] = 8
 	local todo = {{0,y,0}}
 	while todo[1] do
 		for n,current in pairs(todo) do
@@ -100,7 +207,7 @@ local function flow_lq(y, a)
 					end
 				end
 				y = y-l
-				flows[a][x.." "..y.." "..z] = 9
+				flows[a][x.." "..y.." "..z] = 8
 				table.insert(todo, {x,y,z})
 			else
 				y = y+1
@@ -128,38 +235,40 @@ local function flow_lq(y, a)
 	end
 end
 
-local c_air, c_stone, done
-local function load_contents()
-	if done then
-		return
-	end
-	c_air = minetest.get_content_id("air")
-	c_stone = minetest.get_content_id("default:stone")
-	done = true
-end
-
 -- creates one
 local function spawn_volcano(pos, h)
 	hole_size = h
 
--- reset current solids
-	hard_nds = {}
+	width = h*2
+--	width = h*8
 
--- reset current liquids
-	flows = {w={}, l={}}
+-- gets the bottom position
+	get_bottom(pos.y)
 
 -- sets the "tower"
 	get_tower(h)
+
+-- gets environment
+	get_solids_around(pos, h)
 
 -- calculates the mountain
 	local lq = "w"
 	for y = 1,h+1,2 do
 		flow_lq(y, lq)
-		print(lq.." set")
 		cool()
-		print("cooled")
+		--[[if lq == "l" then
+			flow_lq(y-2, "w")
+			flow_lq(y, lq)
+			cool()
+		end]]
 		lq = inverts[lq]
 	end
+
+-- reset current liquids
+	flows = {w={}, l={}}
+
+-- reset current environment info
+	exs_solids = {}
 
 -- gets informations
 	local ps,n = {},1
@@ -186,13 +295,16 @@ local function spawn_volcano(pos, h)
 		n = n+1
 	end
 
+-- reset current solids
+	hard_nds = {}
+
 -- places the mountain
-	load_contents()
 	local manip = minetest.get_voxel_manip()
 	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
 	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
 	local data = manip:get_data()
 
+	load_contents()
 	for _,p in pairs(ps) do
 		p = area:index(p[1], p[2], p[3])
 		if data[p] == c_air then
@@ -212,9 +324,9 @@ local function chatcmd(name)
 		return
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
-	minetest.chat_send_all("mnt1")
+	log("spawning mountain")
 	spawn_volcano(pos, 50)
-	minetest.chat_send_all("mnt2")
+	log("done")
 end
 
 minetest.register_chatcommand('vulkan',{
@@ -228,4 +340,4 @@ minetest.register_chatcommand('vulkan',{
 
 
 
-
+minetest.log("info", string.format("[] loaded after ca. %.2fs", os.clock() - load_time_start))
