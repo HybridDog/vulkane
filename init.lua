@@ -96,7 +96,6 @@ local hard_nds = {}
 -- current liquids
 local flows = {w={}, l={}}
 
-local hole_size
 -- get a solid
 local function is_hard(x,y,z)
 	local maxv = math.max(math.abs(x), math.abs(z))
@@ -237,8 +236,6 @@ end
 
 -- creates one
 local function spawn_volcano(pos, h)
-	hole_size = h
-
 	width = h*2
 --	width = h*8
 
@@ -246,14 +243,21 @@ local function spawn_volcano(pos, h)
 	get_bottom(pos.y)
 
 -- sets the "tower"
-	get_tower(h)
+	get_tower(h-2)
 
 -- gets environment
 	get_solids_around(pos, h)
 
 -- calculates the mountain
+	width = h
+	local ending
 	local lq = "w"
-	for y = 1,h+1,2 do
+	for y = 1,h,2 do
+		if not ending
+		and y <= h-2 then
+			ending = true
+			width = h*2
+		end
 		flow_lq(y, lq)
 		cool()
 		--[[if lq == "l" then
