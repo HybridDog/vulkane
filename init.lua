@@ -344,4 +344,4 @@ minetest.register_chatcommand('vulkan',{
 
 
 
-minetest.log("info", string.format("[] loaded after ca. %.2fs", os.clock() - load_time_start))
+minetest.log("info", string.format("[vulkane] loaded after ca. %.2fs", os.clock() - load_time_start))
