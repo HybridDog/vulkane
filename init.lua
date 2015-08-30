@@ -3,12 +3,12 @@ local load_time_start = os.clock()
 local singleplayer,log = minetest.is_singleplayer()
 if singleplayer then
 	function log(txt)
-		minetest.log(txt)
+		minetest.log("action", txt)
 		minetest.chat_send_all(txt)
 	end
 else
 	function log(txt)
-		minetest.log(txt)
+		minetest.log("action", txt)
 	end
 end
 
@@ -36,8 +36,6 @@ local function get_bottom(y)
 	end
 end
 
-local width
-
 local function is_surrounded(data, area, x,y,z, pos)
 	if x >= pos.x-1
 	and x <= pos.x+1
@@ -45,18 +43,37 @@ local function is_surrounded(data, area, x,y,z, pos)
 	and z <= pos.z+1 then
 		return false
 	end
-	for i = -1,1,2 do
-		for _,s in pairs({{x+i,y,z}, {x,y+i,z}, {x,y,z+i}}) do
+	--for i = -1,1,2 do
+		--[[for _,s in pairs({{x+i,y,z}, {x,y+i,z}, {x,y,z+i}}) do
 			local x,y,z = unpack(s)
 			local nd = data[area:index(x,y,z)]
 			if nd == c_air
 			or nd == c_ignore then
 				return false
 			end
+		end]]
+	for z = -1,1 do
+		local z = z+z
+		for y = -1,1 do
+			local y = y+y
+			for x = -1,1 do
+				local x = x+x
+				local nd = data[area:index(x,y,z)]
+				if nd == c_air
+				or nd == c_ignore then
+					return false
+				end
+			end
 		end
 	end
 	return true
 end
+
+local save = vector.set_data_to_pos
+local get = vector.get_data_from_pos
+local remove = vector.remove_data_from_pos
+
+local width
 
 -- gets the environment
 local exs_solids = {}
@@ -78,10 +95,10 @@ local function get_solids_around(pos, h)
 		for y = min.y,max.y do
 			for x = min.x,max.x do
 				local nd = data[area:index(x,y,z)]
-				if nd ~= c_air
-				and nd ~= c_ignore
-				and not is_surrounded(data, area, x,y,z, pos) then
-					exs_solids[x-pos.x.." "..y-pos.y.." "..z-pos.z] = true
+				if nd ~= c_air then
+				--and nd ~= c_ignore
+				--and not is_surrounded(data, area, x,y,z, pos) then
+					save(exs_solids, z-pos.z,y-pos.y,x-pos.x, true)
 					count = count+1
 				end
 			end
@@ -117,9 +134,8 @@ local function is_hard(x,y,z)
 	and y <= hole_size/(hole_size-dist*2)-5 then
 		return true
 	end]]
-	local pstr = x.." "..y.." "..z
-	if exs_solids[pstr]
-	or hard_nds[pstr] then
+	if get(exs_solids, z,y,x)
+	or get(hard_nds, z,y,x) then
 		return true
 	end
 	return false
@@ -132,7 +148,7 @@ local function get_tower(h)
 		for x = -2,2 do
 			for z = -2,2 do
 				if math.random(2) == 1 then
-					hard_nds[x.." "..y.." "..z] = true
+					save(hard_nds, z,y,x, true)
 				end
 			end
 		end
@@ -140,12 +156,11 @@ local function get_tower(h)
 end
 
 -- searches for water around it
-local function find_water(p)
-	local x,y,z = unpack(string.split(p, " "))
+local function find_water(x,y,z)
 	for i = -1,1 do
 		for j = -1,1 do
 			for k = -1,1 do
-				if flows.w[x+i.." "..y+j.." "..z+k] then
+				if get(flows.w, z+i,y+j,x+k) then
 					return true
 				end
 			end
@@ -162,10 +177,11 @@ end
 -- cools the lava
 local function cool()
 	log("cooling…")
-	for p in pairs(flows.l) do
-		if find_water(p) then
-			flows.l[p] = nil
-			hard_nds[p] = true
+	for _,p in pairs(vector.get_data_pos_table(flows.l)) do
+		local z,y,x = unpack(p[1])
+		if find_water(x,y,z) then
+			remove(flows.l, z,y,x)
+			save(hard_nds, z,y,x, true)
 		end
 	end
 end
@@ -177,19 +193,19 @@ local inverts = {w="l", l="w"}
 local function flow_lq(y, a)
 	log("flowing "..a.."…")
 	local b = inverts[a]
-	flows[a]["0 "..y.." 0"] = 8
+	save(flows[a], 0,y,0, 8)
 	local todo = {{0,y,0}}
-	while todo[1] do
+	while next(todo) do
 		for n,current in pairs(todo) do
 			local x,y,z = unpack(current)
 			y = y-1
 			if not is_hard(x,y,z)
-			and not flows[b][x.." "..y.." "..z] then
+			and not get(flows[b], z,y,x) then
 			-- it flows a bit down if air is under it
 				local l = 1
 				for i = y-1,y-500,-1 do
 					if is_hard(x,i,z)
-					or flows[b][x.." "..i.." "..z] then
+					or get(flows[b], z,i,x) then
 						break
 					end
 					l = l+1
@@ -198,31 +214,30 @@ local function flow_lq(y, a)
 				if l ~= 1 then
 					local l = l
 					if a == "l" then
-					-- lava doesn't somehow stops in air
+					-- cooled lava somehow stops in air maybe because water flows faster
 						l = math.floor(l/math.random(1,l)+0.5)
 					end
 					for i = 1,l do
-						flows[a][x.." "..y-i.." "..z] = 1
+						save(flows[a], z,y-i,x, 1)
 					end
 				end
 				y = y-l
-				flows[a][x.." "..y.." "..z] = 8
+				save(flows[a], z,y,x, 8)
 				table.insert(todo, {x,y,z})
 			else
 				y = y+1
-				local v = flows[a][x.." "..y.." "..z] - 1
+				local v = get(flows[a], z,y,x) - 1
 				if v > 0 then
 				-- it spreads if its param is > 1
 					for _,d in pairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
 						x = x+d[1]
 						z = z+d[2]
-						local pstr = x.." "..y.." "..z
-						if not flows[b][pstr]
+						if not get(flows[b], z,y,x)
 						and not is_hard(x,y,z) then
-							local cv = flows[a][pstr]
+							local cv = get(flows[a], z,y,x)
 							if not cv
 							or cv < v then
-								flows[a][pstr] = v
+								save(flows[a], z,y,x, v)
 								table.insert(todo, {x,y,z})
 							end
 						end
@@ -245,6 +260,7 @@ local function spawn_volcano(pos, h)
 -- sets the "tower"
 	get_tower(h-2)
 
+	load_contents()
 -- gets environment
 	get_solids_around(pos, h)
 
@@ -275,29 +291,9 @@ local function spawn_volcano(pos, h)
 	exs_solids = {}
 
 -- gets informations
-	local ps,n = {},1
-	local min = vector.new(pos)
-	local max = vector.new(pos)
-	for p in pairs(hard_nds) do
-
-	-- get coordinates
-		local x,y,z = unpack(string.split(p, " "))
-		x = x+pos.x
-		y = y+pos.y
-		z = z+pos.z
-
-	-- update min and max position
-		min.x = math.min(min.x,x)
-		min.y = math.min(min.y,y)
-		min.z = math.min(min.z,z)
-		max.x = math.max(max.x,x)
-		max.y = math.max(max.y,y)
-		max.z = math.max(max.z,z)
-
-	-- put it into another table
-		ps[n] = {x,y,z}
-		n = n+1
-	end
+	local ps, min, max, n = vector.get_data_pos_table(hard_nds)
+	min = vector.add(min, pos)
+	max = vector.add(max, pos)
 
 -- reset current solids
 	hard_nds = {}
@@ -308,17 +304,23 @@ local function spawn_volcano(pos, h)
 	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
 	local data = manip:get_data()
 
-	load_contents()
+	local z,y,x = vector.unpack(pos)
 	for _,p in pairs(ps) do
-		p = area:index(p[1], p[2], p[3])
+		p = p[1]
+		p = area:index(p[3]+x, p[2]+y, p[1]+z)
 		if data[p] == c_air then
 			data[p] = c_stone
+		else
+			print("error: "..minetest.get_name_from_content_id(data[p]).." is not air")
+			return 0
 		end
 	end
 
 	manip:set_data(data)
 	manip:write_to_map()
 	manip:update_map()
+
+	return n
 end
 
 
@@ -329,8 +331,8 @@ local function chatcmd(name)
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
 	log("spawning mountain")
-	spawn_volcano(pos, 50)
-	log("done")
+	local count = spawn_volcano(pos, 50)
+	log("done, "..count.." stones set")
 end
 
 minetest.register_chatcommand('vulkan',{
