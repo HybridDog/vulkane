@@ -178,7 +178,7 @@ end
 local function cool()
 	log("cooling…")
 	for _,p in pairs(vector.get_data_pos_table(flows.l)) do
-		local z,y,x = unpack(p[1])
+		local z,y,x = unpack(p)
 		if find_water(x,y,z) then
 			remove(flows.l, z,y,x)
 			save(hard_nds, z,y,x, true)
@@ -306,7 +306,6 @@ local function spawn_volcano(pos, h)
 
 	local z,y,x = vector.unpack(pos)
 	for _,p in pairs(ps) do
-		p = p[1]
 		p = area:index(p[3]+x, p[2]+y, p[1]+z)
 		if data[p] == c_air then
 			data[p] = c_stone
