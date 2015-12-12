@@ -32,12 +32,12 @@ local function get_bottom(y)
 end
 
 local function is_surrounded(data, area, x,y,z, pos)
-	if x >= pos.x-1
+	--[[if x >= pos.x-1
 	and x <= pos.x+1
 	and z >= pos.z-1
 	and z <= pos.z+1 then
 		return false
-	end
+	end--]]
 	--for i = -1,1,2 do
 		--[[for _,s in pairs({{x+i,y,z}, {x,y+i,z}, {x,y,z+i}}) do
 			local x,y,z = unpack(s)
