@@ -91,13 +91,13 @@ local function get_solids_around(pos, h)
 
 	load_contents()
 	local count = 0
-	for z = min.z,max.z do
-		for y = min.y,max.y do
-			for x = min.x,max.x do
+	for z = e1.z,e2.z do
+		for y = e1.y,e2.y do
+			for x = e1.x,e2.x do
 				local nd = data[area:index(x,y,z)]
-				if nd ~= c_air then
+				if nd ~= c_air
 				--and nd ~= c_ignore
-				--and not is_surrounded(data, area, x,y,z, pos) then
+				and not is_surrounded(data, area, x,y,z, pos) then
 					save(exs_solids, z-pos.z,y-pos.y,x-pos.x, true)
 					count = count+1
 				end
@@ -115,11 +115,8 @@ local flows = {w={}, l={}}
 
 -- get a solid
 local function is_hard(x,y,z)
-	local maxv = math.max(math.abs(x), math.abs(z))
-	if maxv > width then
-		return true
-	end
-	if y < bottom then
+	if math.max(math.abs(x), math.abs(z)) > width
+	or y < bottom then
 		return true
 	end
 	--[[local dist = math.hypot(x,z)
@@ -134,11 +131,8 @@ local function is_hard(x,y,z)
 	and y <= hole_size/(hole_size-dist*2)-5 then
 		return true
 	end]]
-	if get(exs_solids, z,y,x)
-	or get(hard_nds, z,y,x) then
-		return true
-	end
-	return false
+	return get(exs_solids, z,y,x)
+		or get(hard_nds, z,y,x)
 end
 
 -- sets the tower for the volcano
@@ -195,57 +189,58 @@ local function flow_lq(y, a)
 	local b = inverts[a]
 	save(flows[a], 0,y,0, 8)
 	local todo = {{0,y,0}}
-	while next(todo) do
-		for n,current in pairs(todo) do
-			local x,y,z = unpack(current)
-			y = y-1
-			if not is_hard(x,y,z)
-			and not get(flows[b], z,y,x) then
-			-- it flows a bit down if air is under it
-				local l = 1
-				for i = y-1,y-500,-1 do
-					if is_hard(x,i,z)
-					or get(flows[b], z,i,x) then
-						break
-					end
-					l = l+1
+	local n = 1
+	while n do
+		local x,y,z = unpack(todo[n])
+		y = y-1
+		if not is_hard(x,y,z)
+		and not get(flows[b], z,y,x) then
+		-- it flows a bit down if air is under it
+			local l = 1
+			for i = y-1,y-500,-1 do
+				if is_hard(x,i,z)
+				or get(flows[b], z,i,x) then
+					break
 				end
-				y = y+1
-				if l ~= 1 then
-					local l = l
-					if a == "l" then
-					-- cooled lava somehow stops in air maybe because water flows faster
-						l = math.floor(l/math.random(1,l)+0.5)
-					end
-					for i = 1,l do
-						save(flows[a], z,y-i,x, 1)
-					end
+				l = l+1
+			end
+			y = y+1
+			if l ~= 1 then
+				local l = l
+				if a == "l" then
+				-- cooled lava somehow stops in air maybe because water flows faster
+					l = math.floor(l/math.random(1,l)+0.5)
 				end
-				y = y-l
-				save(flows[a], z,y,x, 8)
-				table.insert(todo, {x,y,z})
-			else
-				y = y+1
-				local v = get(flows[a], z,y,x) - 1
-				if v > 0 then
-				-- it spreads if its param is > 1
-					for _,d in pairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
-						x = x+d[1]
-						z = z+d[2]
-						if not get(flows[b], z,y,x)
-						and not is_hard(x,y,z) then
-							local cv = get(flows[a], z,y,x)
-							if not cv
-							or cv < v then
-								save(flows[a], z,y,x, v)
-								table.insert(todo, {x,y,z})
-							end
+				for i = 1,l do
+					save(flows[a], z,y-i,x, 1)
+				end
+			end
+			y = y-l
+			save(flows[a], z,y,x, 8)
+			table.insert(todo, {x,y,z})
+		else
+			y = y+1
+			local v = get(flows[a], z,y,x) - 1
+			if v > 0 then
+			-- it spreads if its param is > 1
+				for _,d in ipairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
+					x = x+d[1]
+					z = z+d[2]
+					if not get(flows[b], z,y,x)
+					and not is_hard(x,y,z) then
+						local cv = get(flows[a], z,y,x)
+						if not cv
+						or cv < v then
+							save(flows[a], z,y,x, v)
+							table.insert(todo, {x,y,z})
 						end
 					end
 				end
 			end
-			todo[n] = nil
 		end
+
+		todo[n] = nil
+		n = next(todo)
 	end
 end
 
