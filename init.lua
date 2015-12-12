@@ -294,9 +294,11 @@ local function spawn_volcano(pos, h)
 	hard_nds = {}
 
 -- places the mountain
-	local manip = minetest.get_voxel_manip()
-	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
-	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	local manip,area = minetest.get_voxel_manip()
+	do
+		local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
+		area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	end
 	local data = manip:get_data()
 
 	local z,y,x = vector.unpack(pos)
@@ -305,7 +307,7 @@ local function spawn_volcano(pos, h)
 		if data[p] == c_air then
 			data[p] = c_stone
 		else
-			print("error: "..minetest.get_name_from_content_id(data[p]).." is not air")
+			minetest.log("error", "error: "..minetest.get_name_from_content_id(data[p]).." is not air")
 			return 0
 		end
 	end
@@ -321,6 +323,7 @@ end
 local function chatcmd(name)
 	if not name
 	or name == "" then
+		minetest.log("error", "Who???")
 		return
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
