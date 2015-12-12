@@ -27,13 +27,7 @@ end
 -- gets the lowest allowed height
 local bottom, bottom_rel
 local function get_bottom(y)
-	if y > 50 then
-		bottom = y-50
-	elseif y > 0 then
-		bottom = 0
-	else
-		bottom = y
-	end
+	bottom = y-100
 	bottom_rel = bottom-y
 end
 
@@ -144,7 +138,8 @@ local function get_tower(h)
 	for y = 0,h,2 do
 		for x = -2,2 do
 			for z = -2,2 do
-				if math.random(2) == 1 then
+				if not is_hard(x,y,z)
+				and math.random(2) == 1 then
 					save(hard_nds, z,y,x, true)
 				end
 			end
@@ -209,7 +204,7 @@ local function flow_lq(y, a)
 			end
 			y = y+1
 			if l ~= 1 then
-				local l = l
+				local l = math.min(l, 20)
 				if a == "l" then
 				-- cooled lava somehow stops in air maybe because water flows faster
 					l = math.floor(l/math.random(1,l)+0.5)
@@ -219,8 +214,17 @@ local function flow_lq(y, a)
 				end
 			end
 			y = y-l
-			save(flows[a], z,y,x, 8)
-			table.insert(todo, {x,y,z})
+			if y > bottom_rel then
+				local num
+				if l == 1 then
+					-- liquid flows 4 nodes far if it flow down just 1 node, else 8
+					num = 4
+				else
+					num = 8
+				end
+				save(flows[a], z,y,x, num)
+				table.insert(todo, {x,y,z})
+			end
 		else
 			y = y+1
 			local v = get(flows[a], z,y,x) - 1
