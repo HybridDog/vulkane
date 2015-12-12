@@ -31,7 +31,7 @@ local function get_bottom(y)
 	bottom_rel = bottom-y
 end
 
-local function is_surrounded(data, area, x,y,z, pos)
+local function is_surrounded(data, area, x,y,z)
 	--[[if x >= pos.x-1
 	and x <= pos.x+1
 	and z >= pos.z-1
@@ -80,15 +80,20 @@ local function get_solids_around(pos, h)
 	local data = manip:get_data()
 
 	load_contents()
+
+	local pz,py,px = vector.unpack(pos)
+	local minz,miny,minx = vector.unpack(min)
+	local maxz,maxy,maxx = vector.unpack(max)
+
 	local count = 0
-	for z = min.z,max.z do
-		for y = min.y,max.y do
-			for x = min.x,max.x do
+	for z = minz,maxz do
+		for y = miny,maxy do
+			for x = minx,maxx do
 				--local nd = data[area:index(x,y,z)]
 				if data[area:index(x,y,z)] ~= c_air
 				--and nd ~= c_ignore
-				and not is_surrounded(data, area, x,y,z, pos) then
-					save(exs_solids, z-pos.z,y-pos.y,x-pos.x, true)
+				and not is_surrounded(data, area, x,y,z) then
+					save(exs_solids, z-pz,y-py,x-px, true)
 					count = count+1
 				end
 			end
