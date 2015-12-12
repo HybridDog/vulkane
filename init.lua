@@ -25,7 +25,7 @@ local function load_contents()
 end
 
 -- gets the lowest allowed height
-local bottom
+local bottom, bottom_rel
 local function get_bottom(y)
 	if y > 50 then
 		bottom = y-50
@@ -34,6 +34,7 @@ local function get_bottom(y)
 	else
 		bottom = y
 	end
+	bottom_rel = bottom-y
 end
 
 local function is_surrounded(data, area, x,y,z, pos)
@@ -118,7 +119,7 @@ local flows = {w={}, l={}}
 -- get a solid
 local function is_hard(x,y,z)
 	if math.max(math.abs(x), math.abs(z)) > width
-	or y < bottom then
+	or y < bottom_rel then
 		return true
 	end
 	--[[local dist = math.hypot(x,z)
