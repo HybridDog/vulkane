@@ -53,9 +53,7 @@ local function is_surrounded(data, area, x,y,z, pos)
 			local y = y+py
 			for px = -1,1 do
 				local x = x+px
-				local nd = data[area:index(x,y,z)]
-				if nd == c_air
-				or nd == c_ignore then
+				if data[area:index(x,y,z)] == c_air then
 					return false
 				end
 			end
@@ -91,8 +89,8 @@ local function get_solids_around(pos, h)
 	for z = min.z,max.z do
 		for y = min.y,max.y do
 			for x = min.x,max.x do
-				local nd = data[area:index(x,y,z)]
-				if nd ~= c_air
+				--local nd = data[area:index(x,y,z)]
+				if data[area:index(x,y,z)] ~= c_air
 				--and nd ~= c_ignore
 				and not is_surrounded(data, area, x,y,z, pos) then
 					save(exs_solids, z-pos.z,y-pos.y,x-pos.x, true)
@@ -184,6 +182,7 @@ local inverts = {w="l", l="w"}
 -- simulates a liquid flowing down
 local function flow_lq(y, a)
 	log("flowing "..a.."…")
+	local lava = a == "l"
 	local b = inverts[a]
 	save(flows[a], 0,y,0, 8)
 	local todo = {{0,y,0}}
@@ -205,7 +204,7 @@ local function flow_lq(y, a)
 			y = y+1
 			if l ~= 1 then
 				local l = math.min(l, 20)
-				if a == "l" then
+				if lava then
 				-- cooled lava somehow stops in air maybe because water flows faster
 					l = math.floor(l/math.random(1,l)+0.5)
 				end
@@ -217,7 +216,7 @@ local function flow_lq(y, a)
 			if y > bottom_rel then
 				local num
 				if l == 1 then
-					-- liquid flows 4 nodes far if it flow down just 1 node, else 8
+				-- liquid flows 4 nodes far if it flow down just 1 node, else 8
 					num = 4
 				else
 					num = 8
@@ -234,7 +233,8 @@ local function flow_lq(y, a)
 					x = x+d[1]
 					z = z+d[2]
 					if not get(flows[b], z,y,x)
-					and not is_hard(x,y,z) then
+					and not is_hard(x,y,z)
+					and (lava or math.max(math.abs(x), math.abs(z)) < width) then
 						local cv = get(flows[a], z,y,x)
 						if not cv
 						or cv < v then
@@ -267,6 +267,7 @@ local function spawn_volcano(pos, h)
 	get_tower(h-2)
 
 -- calculates the mountain
+	log("calculating mountain:")
 	width = h
 	local ending
 	local lq = "w"
@@ -275,6 +276,7 @@ local function spawn_volcano(pos, h)
 		and y <= h-2 then
 			ending = true
 			width = h*2
+			--flows = {w={}, l={}}
 		end
 		flow_lq(y, lq)
 		cool()
@@ -291,6 +293,8 @@ local function spawn_volcano(pos, h)
 
 -- reset current environment info
 	exs_solids = {}
+
+	log("setting nodes…")
 
 -- gets informations
 	local ps, min, max, n = vector.get_data_pos_table(hard_nds)
