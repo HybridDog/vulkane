@@ -52,12 +52,12 @@ local function is_surrounded(data, area, x,y,z, pos)
 				return false
 			end
 		end]]
-	for z = -1,1 do
-		local z = z+z
-		for y = -1,1 do
-			local y = y+y
-			for x = -1,1 do
-				local x = x+x
+	for pz = -1,1 do
+		local z = z+pz
+		for py = -1,1 do
+			local y = y+py
+			for px = -1,1 do
+				local x = x+px
 				local nd = data[area:index(x,y,z)]
 				if nd == c_air
 				or nd == c_ignore then
