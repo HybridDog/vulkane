@@ -82,7 +82,7 @@ local function get_solids_around(pos, h)
 	local min = vector.subtract(pos, width)
 	local max = vector.add(pos, width)
 	min.y = bottom
-	max.y = h
+	max.y = pos.y+h
 
 	local manip,area = minetest.get_voxel_manip()
 	do
