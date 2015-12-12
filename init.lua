@@ -47,16 +47,11 @@ local function is_surrounded(data, area, x,y,z, pos)
 				return false
 			end
 		end]]
-	for pz = -1,1 do
-		local z = z+pz
-		for py = -1,1 do
-			local y = y+py
-			for px = -1,1 do
-				local x = x+px
-				if data[area:index(x,y,z)] == c_air then
-					return false
-				end
-			end
+	for i = -1,1,2 do
+		if data[area:index(x+i,y,z)] == c_air
+		or data[area:index(x,y+i,z)] == c_air
+		or data[area:index(x,y,z+i)] == c_air then
+			return false
 		end
 	end
 	return true
