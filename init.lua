@@ -259,12 +259,12 @@ local function spawn_volcano(pos, h)
 -- gets the bottom position
 	get_bottom(pos.y)
 
--- sets the "tower"
-	get_tower(h-2)
-
 	load_contents()
 -- gets environment
 	get_solids_around(pos, h)
+
+-- sets the "tower"
+	get_tower(h-2)
 
 -- calculates the mountain
 	width = h
