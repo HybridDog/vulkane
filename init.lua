@@ -308,20 +308,27 @@ local function spawn_volcano(pos, h)
 	end
 	local data = manip:get_data()
 
+	--local occupied = 0
+
 	local z,y,x = vector.unpack(pos)
 	for _,p in pairs(ps) do
 		p = area:index(p[3]+x, p[2]+y, p[1]+z)
-		if data[p] == c_air then
+		--if data[p] == c_air then
 			data[p] = c_stone
+		--[[
 		else
-			minetest.log("error", "error: "..minetest.get_name_from_content_id(data[p]).." is not air")
-			return 0
-		end
+			occupied = occupied+1
+		end--]]
 	end
 
 	manip:set_data(data)
 	manip:write_to_map()
 	manip:update_map()
+
+	--[[ just a few nodes in the middle of the tower are affected only when spawning a mountain while being inside sth
+	if occupied ~= 0 then
+		log(occupied.." node(s) were not set because there's already hard")
+	end--]]
 
 	return n
 end
