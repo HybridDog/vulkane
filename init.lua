@@ -306,10 +306,8 @@ local function spawn_volcano(pos, h)
 
 -- places the mountain
 	local manip,area = minetest.get_voxel_manip()
-	do
-		local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
-		area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
-	end
+	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
+	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
 	local data = manip:get_data()
 
 	--local occupied = 0
