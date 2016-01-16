@@ -325,7 +325,11 @@ local function spawn_volcano(pos, h)
 
 	manip:set_data(data)
 	manip:write_to_map()
-	manip:update_map()
+
+	minetest.delay_function(16384, function(manip)
+		manip:update_map()
+		log("map updated")
+	end, manip)
 
 	--[[ just a few nodes in the middle of the tower are affected only when spawning a mountain while being inside sth
 	if occupied ~= 0 then
