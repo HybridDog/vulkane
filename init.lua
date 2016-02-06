@@ -288,10 +288,8 @@ local function spawn_volcano(pos, h)
 		lq = inverts[lq]
 	end
 
--- reset current liquids
+-- reset current liquids and current environment info
 	flows = {w={}, l={}}
-
--- reset current environment info
 	exs_solids = {}
 
 	log("setting nodes…")
@@ -303,6 +301,8 @@ local function spawn_volcano(pos, h)
 
 -- reset current solids
 	hard_nds = {}
+
+	collectgarbage()
 
 -- places the mountain
 	local manip,area = minetest.get_voxel_manip()
