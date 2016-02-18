@@ -72,11 +72,9 @@ local function get_solids_around(pos, h)
 	min.y = bottom
 	max.y = pos.y+h
 
-	local manip,area = minetest.get_voxel_manip()
-	do
-		local e1, e2 = manip:read_from_map(min, max)
-		area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
-	end
+	local manip = minetest.get_voxel_manip()
+	local e1, e2 = manip:read_from_map(min, max)
+	local area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
 	local data = manip:get_data()
 
 	load_contents()
