@@ -18,9 +18,9 @@ local function load_contents()
 	if done then
 		return
 	end
-	c_air = minetest.get_content_id("air")
-	c_ignore = minetest.get_content_id("ignore")
-	c_stone = minetest.get_content_id("default:stone")
+	c_air = minetest.get_content_id"air"
+	c_ignore = minetest.get_content_id"ignore"
+	c_stone = minetest.get_content_id"default:stone"
 	done = true
 end
 
@@ -66,7 +66,7 @@ local width
 -- gets the environment
 local exs_solids = {}
 local function get_solids_around(pos, h)
-	log("searching environment…")
+	log"searching environment…"
 	local min = vector.subtract(pos, width)
 	local max = vector.add(pos, width)
 	min.y = bottom
@@ -74,7 +74,7 @@ local function get_solids_around(pos, h)
 
 	local manip = minetest.get_voxel_manip()
 	local e1, e2 = manip:read_from_map(min, max)
-	local area = VoxelArea:new({MinEdge=e1, MaxEdge=e2})
+	local area = VoxelArea:new{MinEdge=e1, MaxEdge=e2}
 	local data = manip:get_data()
 
 	load_contents()
@@ -130,7 +130,7 @@ end
 
 -- sets the tower for the volcano
 local function get_tower(h)
-	log("creating tower…")
+	log"creating tower…"
 	for y = 0,h,2 do
 		for x = -2,2 do
 			for z = -2,2 do
@@ -164,7 +164,7 @@ end
 
 -- cools the lava
 local function cool()
-	log("cooling…")
+	log"cooling…"
 	for _,p in pairs(vector.get_data_pos_table(flows.l)) do
 		local z,y,x = unpack(p)
 		if find_water(x,y,z) then
@@ -227,7 +227,7 @@ local function flow_lq(y, a)
 			local v = get(flows[a], z,y,x) - 1
 			if v > 0 then
 			-- it spreads if its param is > 1
-				for _,d in ipairs({{-1,0}, {2,0}, {-1,1}, {0,-2}}) do
+				for _,d in ipairs{{-1,0}, {2,0}, {-1,1}, {0,-2}} do
 					x = x+d[1]
 					z = z+d[2]
 					if not get(flows[b], z,y,x)
@@ -265,7 +265,7 @@ local function spawn_volcano(pos, h)
 	get_tower(h-2)
 
 -- calculates the mountain
-	log("calculating mountain:")
+	log"calculating mountain:"
 	width = h
 	local ending
 	local lq = "w"
@@ -305,7 +305,7 @@ local function spawn_volcano(pos, h)
 -- places the mountain
 	local manip,area = minetest.get_voxel_manip()
 	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
-	local area = VoxelArea:new({MinEdge=emerged_pos1, MaxEdge=emerged_pos2})
+	local area = VoxelArea:new{MinEdge=emerged_pos1, MaxEdge=emerged_pos2}
 	local data = manip:get_data()
 
 	--local occupied = 0
@@ -326,7 +326,7 @@ local function spawn_volcano(pos, h)
 
 	minetest.delay_function(16384, function(manip)
 		manip:update_map()
-		log("map updated")
+		log"map updated"
 	end, manip)
 
 	--[[ just a few nodes in the middle of the tower are affected only when spawning a mountain while being inside sth
@@ -345,7 +345,7 @@ local function chatcmd(name)
 		return
 	end
 	local pos = vector.round(minetest.get_player_by_name(name):getpos())
-	log("spawning mountain")
+	log"spawning mountain"
 	local count = spawn_volcano(pos, 50)
 	log("done, "..count.." stones set")
 end
