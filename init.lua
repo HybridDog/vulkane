@@ -237,7 +237,7 @@ local function flow_lq(y, a)
 						if not cv
 						or cv < v then
 							save(flows[a], z,y,x, v)
-							table.insert(todo, {x,y,z})
+							todo[#todo+1] = {x,y,z}
 						end
 					end
 				end
