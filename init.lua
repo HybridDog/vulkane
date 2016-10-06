@@ -47,10 +47,11 @@ local function is_surrounded(data, area, x,y,z)
 				return false
 			end
 		end]]
+	local vi = area:index(x,y,z)
 	for i = -1,1,2 do
-		if data[area:index(x+i,y,z)] == c_air
-		or data[area:index(x,y+i,z)] == c_air
-		or data[area:index(x,y,z+i)] == c_air then
+		if data[vi + i] == c_air
+		or data[vi + i * area.ystride] == c_air
+		or data[vi + i * area.zstride] == c_air then
 			return false
 		end
 	end
@@ -353,7 +354,7 @@ end
 minetest.register_chatcommand('vulkan',{
 	description = 'MAUNTEN',
 	params = "",
-	privs = {},
+	privs = {server = true},
 	func = chatcmd
 })
 
