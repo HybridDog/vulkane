@@ -1,7 +1,7 @@
 local load_time_start = os.clock()
 
-local singleplayer,log = minetest.is_singleplayer()
-if singleplayer then
+local log
+if minetest.is_singleplayer() then
 	function log(txt)
 		minetest.log("action", txt)
 		minetest.chat_send_all(txt)
@@ -13,13 +13,13 @@ else
 end
 
 -- gets content ids
-local c_air, c_ignore, c_stone, done
+local c_air, c_stone, done
 local function load_contents()
 	if done then
 		return
 	end
 	c_air = minetest.get_content_id"air"
-	c_ignore = minetest.get_content_id"ignore"
+	--~ c_ignore = minetest.get_content_id"ignore"
 	c_stone = minetest.get_content_id"default:stone"
 	done = true
 end
@@ -58,9 +58,12 @@ local function is_surrounded(data, area, x,y,z)
 	return true
 end
 
-local save = vector.set_data_to_pos
-local get = vector.get_data_from_pos
-local remove = vector.remove_data_from_pos
+local function save(t, z, y, x, v)
+	t[minetest.hash_node_position{x=x, y=y, z=z}] = v
+end
+local function get(t, z, y, x)
+	return t[minetest.hash_node_position{x=x, y=y, z=z}]
+end
 
 local width
 
@@ -80,9 +83,9 @@ local function get_solids_around(pos, h)
 
 	load_contents()
 
-	local pz,py,px = vector.unpack(pos)
-	local minz,miny,minx = vector.unpack(min)
-	local maxz,maxy,maxx = vector.unpack(max)
+	local pz,py,px = pos.z, pos.y, pos.x
+	local minz,miny,minx = min.z, min.y, min.x
+	local maxz,maxy,maxx = max.z, max.y, max.x
 
 	local count = 0
 	for z = minz,maxz do
@@ -166,12 +169,18 @@ end
 -- cools the lava
 local function cool()
 	log"cooling…"
-	for _,p in pairs(vector.get_data_pos_table(flows.l)) do
-		local z,y,x = unpack(p)
+	local toremove,n = {},0
+	for i in pairs(flows.l) do
+		local pos = minetest.get_position_from_hash(i)
+		local z,y,x = pos.z, pos.y, pos.x
 		if find_water(x,y,z) then
-			remove(flows.l, z,y,x)
+			n = n+1
+			toremove[n] = i
 			save(hard_nds, z,y,x, true)
 		end
+	end
+	for i = 1,n do
+		flows.l[toremove[i]] = nil
 	end
 end
 
@@ -294,7 +303,25 @@ local function spawn_volcano(pos, h)
 	log("setting nodes…")
 
 -- gets informations
-	local ps, min, max, n = vector.get_data_pos_table(hard_nds)
+	local min, max
+	local ps,n = {},0
+	for i in pairs(hard_nds) do
+		local pos = minetest.get_position_from_hash(i)
+		n = n+1
+		ps[n] = pos
+		if min then
+			max.x = math.max(max.x, pos.x)
+			max.y = math.max(max.y, pos.y)
+			max.z = math.max(max.z, pos.z)
+			min.x = math.min(min.x, pos.x)
+			min.y = math.min(min.y, pos.y)
+			min.z = math.min(min.z, pos.z)
+		else
+			min = vector.new(pos)
+			max = vector.new(pos)
+		end
+	end
+
 	min = vector.add(min, pos)
 	max = vector.add(max, pos)
 
@@ -304,18 +331,20 @@ local function spawn_volcano(pos, h)
 	collectgarbage()
 
 -- places the mountain
-	local manip,area = minetest.get_voxel_manip()
+	local manip = minetest.get_voxel_manip()
 	local emerged_pos1, emerged_pos2 = manip:read_from_map(min, max)
 	local area = VoxelArea:new{MinEdge=emerged_pos1, MaxEdge=emerged_pos2}
 	local data = manip:get_data()
 
 	--local occupied = 0
 
-	local z,y,x = vector.unpack(pos)
-	for _,p in pairs(ps) do
-		p = area:index(p[3]+x, p[2]+y, p[1]+z)
+	local z,y,x = pos.z, pos.y, pos.x
+	for i = 1,n do
+		local p = ps[i]
+		local vi = area:index(p.x + x, p.y + y, p.z + z)
+		assert(data[vi] == c_air, "vulkan tried to replace non air")
+		data[vi] = c_stone
 		--if data[p] == c_air then
-			data[p] = c_stone
 		--[[
 		else
 			occupied = occupied+1
